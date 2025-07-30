@@ -6,6 +6,7 @@ const MenuItem = require("./models/menu_items")
 const bodyParser = require('body-parser');
 const personRoutes=require('./routes/person_routes.js')
 app.use(bodyParser.json());
+require('dotenv').config();
 
 
 app.use('/person',personRoutes);
@@ -82,7 +83,7 @@ app.get('/', function (req, res) {
 //         console.log('Mongo db Disconnected');
 
 // })
-
-app.listen(3000, () => {
+const port=process.env.port;
+app.listen(port, () => {
     console.log("listing on port 3000");
 })
