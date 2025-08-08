@@ -1,10 +1,10 @@
 const express = require('express');
 const routes = express();
 const Person = require("../models/person.js")
-const MenuItem = require("../models/menu_items.js");
+const { jwtAuthMiddleware, generateToken } = require('./../jwt.js')
 
 
-routes.post('/', async (req, res) => {
+routes.post('/signup', async (req, res) => {
     try {
         const data = req.body;
 
@@ -12,15 +12,63 @@ routes.post('/', async (req, res) => {
 
         const response = await newPerson.save();
         console.log('data saved');
-        res.status(200).json(response);
+        const token = generateToken(response.username);
+        console.log('Token is : ', token);
+        res.status(200).json({ response: response, token, token });
     }
     catch (e) {
         console.log(e);
-        res.status(200).json(e);
+        res.status(500).json({ error: "Internal Server Error" });
 
     }
 
 })
+
+routes.post('/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+
+        //find the user by username
+        const user = await Person.findOne({ username: username })
+
+        if (!user || !(await user.comparePassword(password))) {
+            return res.status(401).json({ error: 'Invalid username or password' })
+        }
+        //generate token
+
+        const payload = {
+            id: user.id, username: user.username
+
+        }
+        const token = generateToken(payload);
+
+        res.json({ token });
+
+    }
+    catch (err) {
+        console.log(err);
+        res.status(500).json({ error: 'Internal server error' })
+
+    }
+});
+
+routes.get('/profile',jwtAuthMiddleware, async (req, res) => {
+    try {
+        const userData = req.user;
+        console.log('User Data:', userData);
+
+        const userId = userData.id;
+        const user = await Person.findById(userId)
+
+        res.status(200).json({ user })
+
+    }
+    catch (err) {
+        console.log(err)
+        return res.status(500).json({ error: 'Internal server error' })
+    }
+
+});
 
 
 routes.get('/', async (req, res) => {
@@ -70,7 +118,7 @@ routes.delete('/:id', async (req, res) => {
         }
 
         console.log('Deleted Succesufully')
-        res.status(200).json({message:'Deleted Succesufully'})
+        res.status(200).json({ message: 'Deleted Succesufully' })
     }
     catch (err) {
         console.log(err);
